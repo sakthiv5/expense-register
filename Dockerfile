@@ -1,6 +1,6 @@
 # Use the official Node.js image
 # Stage 1: Build the application
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package.json and package-lock.json
@@ -17,36 +17,20 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
 
 # Stage 2: Run the production application
-FROM node:18-alpine AS runner
+
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-
-# Create directories for persistent volumes
-RUN mkdir -p /app/data /app/uploads
-
-# Set correct permissions
-RUN chown -R node:node /app/data /app/uploads
-
-# Install production dependencies only
+# Ensure we have the production dependencies
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
-# Copy built assets from builder
+# IMPORTANT: Manually add typescript if using next.config.ts
+RUN npm install typescript
+
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.ts ./next.config.ts
-
-# Ensure user owns the main files
-RUN chown -R node:node /app
-
-USER node
+COPY --from=builder /app/next.config.ts ./ 
 
 EXPOSE 3000
-
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-# Note: We run using npm start which boots the built Next.js server
 CMD ["npm", "start"]
