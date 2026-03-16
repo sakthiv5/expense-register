@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const tag = formData.get('tag') as string;
     const receipt = formData.get('receipt') as File | null;
 
-    if (!amount || !date || !category || !tag) {
+    if (!amount || !date || !category) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -78,6 +78,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const category = searchParams.get('category');
+    const tag = searchParams.get('tag');
 
     const offset = (page - 1) * limit;
 
@@ -92,6 +94,16 @@ export async function GET(request: NextRequest) {
     if (endDate) {
       query = query.where('date', '<=', endDate);
       countQuery = countQuery.where('date', '<=', endDate);
+    }
+
+    if (category) {
+      query = query.where('category', category);
+      countQuery = countQuery.where('category', category);
+    }
+
+    if (tag) {
+      query = query.where('tag', tag);
+      countQuery = countQuery.where('tag', tag);
     }
 
     const expenses = await query.orderBy('date', 'desc').orderBy('id', 'desc').limit(limit).offset(offset);

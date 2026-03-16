@@ -41,6 +41,12 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!amount || parseFloat(amount) <= 0) {
+      setStatusMsg({ type: "error", text: "Amount must be greater than 0." });
+      return;
+    }
+
     setIsSubmitting(true);
     setStatusMsg({ type: "", text: "" });
 
@@ -106,8 +112,8 @@ export default function Home() {
       )}
 
       <form onSubmit={handleSubmit}>
-        {/* Date and Amount side-by-side */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
+        {/* Date and Amount */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label" htmlFor="date">Date</label>
             <input
@@ -185,10 +191,9 @@ export default function Home() {
           <input
             id="tag"
             className="form-control"
-            placeholder={category ? "Or type a new tag..." : "Select category first..."}
+            placeholder={category ? "Or type a new tag (optional)..." : "Select category first..."}
             value={tag}
             onChange={(e) => setTag(e.target.value)}
-            required
             autoComplete="off"
           />
         </div>
@@ -223,10 +228,17 @@ export default function Home() {
         <button
           type="submit"
           className="btn"
-          style={{ width: '100%', padding: 'var(--spacing-md)', fontSize: '1.125rem' }}
+          style={{ width: '100%', padding: 'var(--spacing-md)', fontSize: '1.125rem', position: 'relative' }}
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Saving...' : 'Save Expense'}
+          {isSubmitting ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" />
+              </svg>
+              Saving...
+            </span>
+          ) : 'Save Expense'}
         </button>
       </form>
     </div>

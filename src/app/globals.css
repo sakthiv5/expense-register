@@ -294,3 +294,9 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
+
+/* Spinner Animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
