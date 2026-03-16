@@ -108,7 +108,8 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.where('tag', tag);
     }
 
-    const expenses = await query.orderBy('date', 'desc').orderBy('id', 'desc').limit(limit).offset(offset);
+    const rawExpenses = await query.orderBy('date', 'desc').orderBy('id', 'desc').limit(limit).offset(offset);
+    const expenses = rawExpenses.map((e: Record<string, unknown>) => ({ ...e, amount: Number(e.amount) }));
     const [{ total }] = await countQuery;
 
     return NextResponse.json({ 
