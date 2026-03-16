@@ -54,13 +54,15 @@ export async function POST(request: NextRequest) {
       receiptPath = `/uploads/${filename}`;
     }
 
-    const [id] = await db('expenses').insert({
+    const result = await db('expenses').insert({
       amount: parseFloat(amount),
       date: date,
       category: category.trim(),
-      tag: tag.trim(),
+      tag: (tag || '').trim(),
       receipt_path: receiptPath
-    });
+    }).returning('id');
+
+    const id = typeof result[0] === 'object' ? result[0].id : result[0];
 
     return NextResponse.json({ success: true, id }, { status: 201 });
 
