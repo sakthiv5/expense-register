@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist SQLite database to the host machine
+      - ./data:/app/data
+      # Persist uploaded receipts to the host machine
+      - ./uploads:/app/uploads
+    environment:
+      # Uncomment and fill out the below to connect to an external PostgreSQL instead of relying on the local SQLite file
+      # - DATABASE_URL=postgres://user:password@host:5432/dbname
+      - NODE_ENV=production

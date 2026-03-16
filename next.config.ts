@@ -1,7 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: [
+    'knex',
+    'sqlite3',
+    'pg',
+    'tedious',
+    'mysql',
+    'mysql2',
+    'oracledb',
+    'pg-query-stream',
+    'better-sqlite3'
+  ]
 };
 
 export default nextConfig;

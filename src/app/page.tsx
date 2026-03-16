@@ -1,65 +1,234 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { format } from "date-fns";
 
 export default function Home() {
+  const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("");
+  const [tag, setTag] = useState("");
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMsg, setStatusMsg] = useState({ type: "", text: "" });
+
+  const [categories, setCategories] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.categories) setCategories(data.categories);
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (category) {
+      fetch(`/api/tags?category=${encodeURIComponent(category)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.tags) setTags(data.tags);
+        })
+        .catch(console.error);
+    } else {
+      setTags([]);
+    }
+  }, [category]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setStatusMsg({ type: "", text: "" });
+
+    const formData = new FormData();
+    formData.append("date", date);
+    formData.append("amount", amount);
+    formData.append("category", category);
+    formData.append("tag", tag);
+    if (receipt) {
+      formData.append("receipt", receipt);
+    }
+
+    try {
+      const res = await fetch("/api/expenses", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        setStatusMsg({ type: "success", text: "Expense saved!" });
+        setAmount("");
+        setCategory("");
+        setTag("");
+        setReceipt(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+
+        const catRes = await fetch("/api/categories");
+        const catData = await catRes.json();
+        if (catData.categories) setCategories(catData.categories);
+      } else {
+        const errorData = await res.json();
+        setStatusMsg({ type: "error", text: errorData.error || "Failed to save." });
+      }
+    } catch {
+      setStatusMsg({ type: "error", text: "An unexpected error occurred." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>New Expense</h2>
+        <a href="/reports" className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}>
+          Reports
+        </a>
+      </div>
+
+      {statusMsg.text && (
+        <div style={{
+          padding: 'var(--spacing-sm) var(--spacing-md)',
+          marginBottom: 'var(--spacing-md)',
+          borderRadius: 'var(--radius-md)',
+          backgroundColor: statusMsg.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+          color: statusMsg.type === 'success' ? 'var(--color-success)' : 'var(--color-danger)',
+          fontWeight: 500,
+          textAlign: 'center',
+          fontSize: '0.875rem'
+        }}>
+          {statusMsg.text}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+      )}
+
+      <form onSubmit={handleSubmit}>
+        {/* Date and Amount side-by-side */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label" htmlFor="date">Date</label>
+            <input
+              type="date"
+              id="date"
+              className="form-control"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label" htmlFor="amount">Amount ($)</label>
+            <input
+              type="number"
+              id="amount"
+              className="form-control"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+              style={{ fontSize: '1.25rem', fontWeight: 600 }}
+            />
+          </div>
         </div>
-      </main>
+
+        {/* Category */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="category">Category</label>
+          {categories.length > 0 && (
+            <div className="chip-container">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`chip ${category === c ? 'chip-active' : ''}`}
+                  onClick={() => setCategory(category === c ? '' : c)}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+          <input
+            id="category"
+            className="form-control"
+            placeholder="Or type a new category..."
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            required
+            autoComplete="off"
+          />
+        </div>
+
+        {/* Tag */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="tag">Tag</label>
+          {tags.length > 0 && (
+            <div className="chip-container">
+              {tags.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`chip ${tag === t ? 'chip-active' : ''}`}
+                  onClick={() => setTag(tag === t ? '' : t)}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
+          <input
+            id="tag"
+            className="form-control"
+            placeholder={category ? "Or type a new tag..." : "Select category first..."}
+            value={tag}
+            onChange={(e) => setTag(e.target.value)}
+            required
+            autoComplete="off"
+          />
+        </div>
+
+        {/* Receipt */}
+        <div className="form-group">
+          <label className="form-label">Receipt (Optional)</label>
+          <div className="file-input-wrapper">
+            <label className="file-input-trigger" style={receipt ? { borderColor: 'var(--color-success)', color: 'var(--color-success)', backgroundColor: 'rgba(16, 185, 129, 0.05)' } : {}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+              <span>{receipt ? receipt.name : "Capture or select file"}</span>
+            </label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*,application/pdf"
+              capture="environment"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  setReceipt(e.target.files[0]);
+                } else {
+                  setReceipt(null);
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="btn"
+          style={{ width: '100%', padding: 'var(--spacing-md)', fontSize: '1.125rem' }}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Saving...' : 'Save Expense'}
+        </button>
+      </form>
     </div>
   );
 }
