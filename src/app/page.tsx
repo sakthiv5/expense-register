@@ -89,11 +89,8 @@ export default function Home() {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
+      <div style={{ marginBottom: 'var(--spacing-lg)' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>New Expense</h2>
-        <a href="/reports" className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}>
-          Reports
-        </a>
       </div>
 
       {statusMsg.text && (

@@ -37,7 +37,7 @@ export default function ExpenseDetail({ params }: { params: Promise<{ id: string
     try {
       const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
       if (res.ok) {
-        window.location.href = "/reports";
+        window.location.href = "/expenses";
       } else {
         setError("Failed to delete expense.");
         setIsDeleting(false);
@@ -62,7 +62,7 @@ export default function ExpenseDetail({ params }: { params: Promise<{ id: string
         <div style={{ textAlign: 'center', padding: 'var(--spacing-xl)', color: 'var(--color-danger)' }}>
           {error}
         </div>
-        <a href="/reports" className="btn btn-secondary" style={{ width: '100%', marginTop: 'var(--spacing-md)' }}>
+        <a href="/expenses" className="btn btn-secondary" style={{ width: '100%', marginTop: 'var(--spacing-md)' }}>
           ← Back to Reports
         </a>
       </div>
@@ -74,11 +74,8 @@ export default function ExpenseDetail({ params }: { params: Promise<{ id: string
   return (
     <div className="card">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
+      <div style={{ marginBottom: 'var(--spacing-lg)' }}>
         <h2 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Expense Details</h2>
-        <a href="/reports" className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8125rem' }}>
-          ← Back
-        </a>
       </div>
 
       {/* Amount */}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { BottomNav } from "@/components/BottomNav";
 
 export const metadata: Metadata = {
   title: "Expense Register",
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <main className="container">
+        <main className="container" style={{ paddingBottom: '60px' }}>
           <header style={{
             marginBottom: 'var(--spacing-xl)',
             textAlign: 'center',
@@ -29,6 +30,7 @@ export default function RootLayout({
           </header>
           {children}
         </main>
+        <BottomNav />
       </body>
     </html>
   );
