@@ -468,16 +468,18 @@ export default function Reports() {
             <div className="date-group-header">{dateLabel}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {dayExpenses.map(exp => (
-                <div key={exp.id} className="report-row">
-                  <div className="report-row-info">
-                    <span className="report-row-category">{exp.category}</span>
-                    <span className="report-row-tag">· {exp.tag}</span>
-                    {exp.receipt_path && (
-                      <a href={exp.receipt_path} target="_blank" rel="noopener noreferrer" className="report-row-receipt">📎</a>
-                    )}
+                <a key={exp.id} href={`/expenses/${exp.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <div className="report-row" style={{ cursor: 'pointer', transition: 'background-color 150ms' }}>
+                    <div className="report-row-info">
+                      <span className="report-row-category">{exp.category}</span>
+                      <span className="report-row-tag">· {exp.tag}</span>
+                      {exp.receipt_path && (
+                        <span className="report-row-receipt">📎</span>
+                      )}
+                    </div>
+                    <span className="report-row-amount">${exp.amount.toFixed(2)}</span>
                   </div>
-                  <span className="report-row-amount">${exp.amount.toFixed(2)}</span>
-                </div>
+                </a>
               ))}
             </div>
           </div>
