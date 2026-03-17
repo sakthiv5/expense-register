@@ -57,6 +57,7 @@ export default function Reports() {
   const [endDate, setEndDate] = useState(thisWeek.end);
   const [weekComparison, setWeekComparison] = useState<WeekSummary[]>([]);
   const [monthComparison, setMonthComparison] = useState<WeekSummary[]>([]);
+  const [totalSum, setTotalSum] = useState(0);
 
   // Filter state for comparisons
   const [compCategory, setCompCategory] = useState('');
@@ -151,6 +152,7 @@ export default function Reports() {
       if (data.expenses) {
         if (reset) {
           setExpenses(data.expenses);
+          setTotalSum(data.totalAmount || 0);
         } else {
           setExpenses(prev => [...prev, ...data.expenses]);
         }
@@ -196,9 +198,7 @@ export default function Reports() {
     return acc;
   }, {});
 
-  const totalSum = useMemo(() =>
-    expenses.reduce((sum, exp) => sum + exp.amount, 0)
-  , [expenses]);
+
 
   const categoryBreakdown = useMemo(() => {
     const map: Record<string, number> = {};

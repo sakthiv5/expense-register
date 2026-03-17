@@ -87,33 +87,40 @@ export async function GET(request: NextRequest) {
 
     let query = db('expenses').select('*');
     let countQuery = db('expenses').count('* as total');
+    let sumQuery = db('expenses').sum('amount as totalAmount');
 
     if (startDate) {
       query = query.where('date', '>=', startDate);
       countQuery = countQuery.where('date', '>=', startDate);
+      sumQuery = sumQuery.where('date', '>=', startDate);
     }
 
     if (endDate) {
       query = query.where('date', '<=', endDate);
       countQuery = countQuery.where('date', '<=', endDate);
+      sumQuery = sumQuery.where('date', '<=', endDate);
     }
 
     if (category) {
       query = query.where('category', category);
       countQuery = countQuery.where('category', category);
+      sumQuery = sumQuery.where('category', category);
     }
 
     if (tag) {
       query = query.where('tag', tag);
       countQuery = countQuery.where('tag', tag);
+      sumQuery = sumQuery.where('tag', tag);
     }
 
     const rawExpenses = await query.orderBy('date', 'desc').orderBy('id', 'desc').limit(limit).offset(offset);
     const expenses = rawExpenses.map((e: Record<string, unknown>) => ({ ...e, amount: Number(e.amount) }));
     const [{ total }] = await countQuery;
+    const [{ totalAmount }] = await sumQuery;
 
     return NextResponse.json({ 
       expenses, 
+      totalAmount: Number(totalAmount) || 0,
       pagination: {
         total: Number(total),
         page,
