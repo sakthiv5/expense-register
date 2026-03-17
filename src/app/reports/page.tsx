@@ -55,6 +55,7 @@ export default function Reports() {
     return params;
   }, [compCategory, compTag]);
 
+
   // Fetch available categories and tags
   useEffect(() => {
     fetch('/api/categories')
@@ -211,10 +212,10 @@ export default function Reports() {
                     height: '100%',
                     width: `${Math.max((w.total / maxWeekTotal) * 100, 2)}%`,
                     background: i === 0
-                      ? 'linear-gradient(90deg, var(--color-primary), #00acc1)'
+                      ? 'linear-gradient(90deg, #00838f, #00acc1)'
                       : i === 1
-                        ? 'linear-gradient(90deg, #94a3b8, #64748b)'
-                        : 'linear-gradient(90deg, #cbd5e1, #94a3b8)',
+                        ? 'linear-gradient(90deg, #80cbc4, #4db6ac)'
+                        : 'linear-gradient(90deg, #b2dfdb, #80cbc4)',
                     borderRadius: 'var(--radius-full)',
                     transition: 'width 0.5s ease',
                   }} />
@@ -263,10 +264,10 @@ export default function Reports() {
                     height: '100%',
                     width: `${Math.max((m.total / maxMonthTotal) * 100, 2)}%`,
                     background: i === 0
-                      ? 'linear-gradient(90deg, #00695c, #2e7d32)'
+                      ? 'linear-gradient(90deg, #00838f, #00acc1)'
                       : i === 1
-                        ? 'linear-gradient(90deg, #94a3b8, #64748b)'
-                        : 'linear-gradient(90deg, #cbd5e1, #94a3b8)',
+                        ? 'linear-gradient(90deg, #80cbc4, #4db6ac)'
+                        : 'linear-gradient(90deg, #b2dfdb, #80cbc4)',
                     borderRadius: 'var(--radius-full)',
                     transition: 'width 0.5s ease',
                   }} />

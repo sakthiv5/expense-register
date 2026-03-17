@@ -82,12 +82,21 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const category = searchParams.get('category');
     const tag = searchParams.get('tag');
+    const search = searchParams.get('search');
 
     const offset = (page - 1) * limit;
 
     let query = db('expenses').select('*');
     let countQuery = db('expenses').count('* as total');
     let sumQuery = db('expenses').sum('amount as totalAmount');
+
+    if (search) {
+      const likeOp = db.client.config.client === 'pg' ? 'ilike' : 'like';
+      const pattern = `%${search}%`;
+      query = query.where(function() { this.where('category', likeOp, pattern).orWhere('tag', likeOp, pattern); });
+      countQuery = countQuery.where(function() { this.where('category', likeOp, pattern).orWhere('tag', likeOp, pattern); });
+      sumQuery = sumQuery.where(function() { this.where('category', likeOp, pattern).orWhere('tag', likeOp, pattern); });
+    }
 
     if (startDate) {
       query = query.where('date', '>=', startDate);

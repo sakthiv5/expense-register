@@ -15,16 +15,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <main className="container" style={{ paddingBottom: '60px' }}>
+        <main className="container" style={{ paddingBottom: '56px' }}>
           <header style={{
-            marginBottom: 'var(--spacing-xl)',
+            marginBottom: 'var(--spacing-sm)',
             textAlign: 'center',
             backgroundColor: 'var(--color-header-bg)',
-            padding: 'var(--spacing-md) var(--spacing-lg)',
-            borderRadius: 'var(--radius-lg)',
-            borderBottom: '3px solid var(--color-primary)',
+            padding: 'var(--spacing-sm) var(--spacing-md)',
+            borderRadius: 'var(--radius-md)',
+            borderBottom: '2px solid var(--color-primary)',
           }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff', letterSpacing: '0.02em' }}>
+            <h1 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#ffffff', letterSpacing: '0.02em' }}>
               Expense Register
             </h1>
           </header>

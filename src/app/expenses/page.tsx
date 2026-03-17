@@ -39,6 +39,14 @@ export default function AllExpenses() {
   const [endDate, setEndDate] = useState(thisWeek.end);
   const [totalSum, setTotalSum] = useState(0);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Expense[]>([]);
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSearchActive = searchQuery.length >= 2;
+
   const loaderRef = useRef(null);
 
   const fetchExpenses = useCallback(async (pageNum: number, reset: boolean = false) => {
@@ -95,7 +103,41 @@ export default function AllExpenses() {
     if (page > 1) fetchExpenses(page, false);
   }, [page, fetchExpenses]);
 
-  const groupedExpenses = expenses.reduce((acc: GroupedExpenses, curr) => {
+  // Debounced search
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      setSearchTotal(0);
+      return;
+    }
+
+    setIsSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      try {
+        let url = `/api/expenses?page=1&limit=200&search=${encodeURIComponent(searchQuery)}`;
+        if (startDate) url += `&startDate=${startDate}`;
+        if (endDate) url += `&endDate=${endDate}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        setSearchResults(data.expenses || []);
+        setSearchTotal(data.totalAmount || 0);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [searchQuery, startDate, endDate]);
+
+  const displayExpenses = isSearchActive ? searchResults : expenses;
+  const displayTotal = isSearchActive ? searchTotal : totalSum;
+
+  const groupedExpenses = displayExpenses.reduce((acc: GroupedExpenses, curr) => {
     const dateStr = format(parseISO(curr.date), 'MMM d, yyyy');
     if (!acc[dateStr]) acc[dateStr] = [];
     acc[dateStr].push(curr);
@@ -114,10 +156,44 @@ export default function AllExpenses() {
     return map;
   }, [expenses]);
 
+  const displayCount = isSearchActive ? searchResults.length : expenses.length;
+
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-md)' }}>
+      <div style={{ marginBottom: 'var(--spacing-md)' }}>
         <h2 style={{ fontSize: '1.125rem', fontWeight: 600 }}>All Expenses</h2>
+      </div>
+
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: 'var(--spacing-sm)' }}>
+        <input
+          type="text"
+          className="form-control"
+          placeholder="🔍 Search categories & tags..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{ fontSize: '0.875rem', paddingRight: searchQuery ? '2rem' : undefined }}
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            style={{
+              position: 'absolute',
+              right: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--color-text-muted)',
+              fontSize: '1rem',
+              padding: '2px',
+            }}
+          >
+            ×
+          </button>
+        )}
       </div>
 
       {/* Date Filters */}
@@ -133,7 +209,7 @@ export default function AllExpenses() {
       </div>
 
       {/* Total Banner */}
-      {expenses.length > 0 && (
+      {displayCount > 0 && (
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -144,13 +220,15 @@ export default function AllExpenses() {
           background: 'linear-gradient(135deg, var(--color-primary), #00acc1)',
           color: 'white',
         }}>
-          <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Total</span>
-          <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>${totalSum.toFixed(2)}</span>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+            {isSearchActive ? `${searchResults.length} result${searchResults.length !== 1 ? 's' : ''}` : 'Total'}
+          </span>
+          <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>${displayTotal.toFixed(2)}</span>
         </div>
       )}
 
-      {/* Charts - collapsible */}
-      {expenses.length > 0 && (
+      {/* Charts - collapsible (hidden during search) */}
+      {!isSearchActive && expenses.length > 0 && (
         <details style={{
           marginBottom: 'var(--spacing-md)',
           backgroundColor: 'var(--color-bg)',
@@ -209,16 +287,23 @@ export default function AllExpenses() {
           </div>
         ))}
 
-        {expenses.length === 0 && !isLoading && (
+        {displayCount === 0 && !isLoading && !isSearching && (
           <div style={{ textAlign: 'center', padding: 'var(--spacing-lg)', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-            No expenses found.
+            {isSearchActive ? 'No matching expenses found.' : 'No expenses found.'}
+          </div>
+        )}
+        {isSearching && (
+          <div style={{ textAlign: 'center', padding: 'var(--spacing-sm)', color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>
+            Searching...
           </div>
         )}
       </div>
 
-      <div ref={loaderRef} style={{ textAlign: 'center', padding: 'var(--spacing-sm)', color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>
-        {isLoading && <span>Loading...</span>}
-      </div>
+      {!isSearchActive && (
+        <div ref={loaderRef} style={{ textAlign: 'center', padding: 'var(--spacing-sm)', color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>
+          {isLoading && <span>Loading...</span>}
+        </div>
+      )}
     </div>
   );
 }
