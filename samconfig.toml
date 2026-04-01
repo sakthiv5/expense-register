@@ -1,0 +1,12 @@
+# SAM deployment configuration
+# Run: sam deploy
+
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "expense-register"
+resolve_s3 = true
+s3_prefix = "expense-register"
+region = "ap-southeast-2"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"

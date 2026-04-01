@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
+import { apiUrl } from "@/lib/api";
 
 export default function Home() {
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -18,7 +19,7 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/categories")
+    fetch(apiUrl("/categories"))
       .then((res) => res.json())
       .then((data) => {
         if (data.categories) setCategories(data.categories);
@@ -28,7 +29,7 @@ export default function Home() {
 
   useEffect(() => {
     if (category) {
-      fetch(`/api/tags?category=${encodeURIComponent(category)}`)
+      fetch(apiUrl(`/tags?category=${encodeURIComponent(category)}`))
         .then((res) => res.json())
         .then((data) => {
           if (data.tags) setTags(data.tags);
@@ -50,19 +51,49 @@ export default function Home() {
     setIsSubmitting(true);
     setStatusMsg({ type: "", text: "" });
 
-    const formData = new FormData();
-    formData.append("date", date);
-    formData.append("amount", amount);
-    formData.append("category", category);
-    formData.append("tag", tag);
-    if (receipt) {
-      formData.append("receipt", receipt);
-    }
-
     try {
-      const res = await fetch("/api/expenses", {
+      let receiptKey: string | null = null;
+
+      // If there's a receipt, upload it to S3 via presigned URL first
+      if (receipt && receipt.size > 0) {
+        const presignRes = await fetch(
+          apiUrl(`/presigned-upload?filename=${encodeURIComponent(receipt.name)}&contentType=${encodeURIComponent(receipt.type || 'application/octet-stream')}`)
+        );
+        const presignData = await presignRes.json();
+
+        if (!presignRes.ok) {
+          setStatusMsg({ type: "error", text: "Failed to get upload URL." });
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Upload directly to S3
+        const uploadRes = await fetch(presignData.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": receipt.type || "application/octet-stream" },
+          body: receipt,
+        });
+
+        if (!uploadRes.ok) {
+          setStatusMsg({ type: "error", text: "Failed to upload receipt." });
+          setIsSubmitting(false);
+          return;
+        }
+
+        receiptKey = presignData.key;
+      }
+
+      // Create the expense
+      const res = await fetch(apiUrl("/expenses"), {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          date,
+          category: category.trim(),
+          tag: (tag || "").trim(),
+          receiptKey,
+        }),
       });
 
       if (res.ok) {
@@ -73,7 +104,7 @@ export default function Home() {
         setReceipt(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
 
-        const catRes = await fetch("/api/categories");
+        const catRes = await fetch(apiUrl("/categories"));
         const catData = await catRes.json();
         if (catData.categories) setCategories(catData.categories);
       } else {

@@ -1,0 +1,279 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Expense Register — AWS Native Backend
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    MemorySize: 256
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref ExpenseTable
+        BUCKET_NAME: !Ref ReceiptBucket
+        REGION: !Ref AWS::Region
+
+Resources:
+  # ─── DynamoDB Table ───
+  ExpenseTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-expenses'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: DateIndex
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # ─── S3 Bucket for Receipts ───
+  ReceiptBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-receipts-${AWS::AccountId}'
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT]
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+
+  # ─── API Gateway ───
+  ExpenseApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - GET
+          - POST
+          - DELETE
+          - OPTIONS
+        AllowOrigins:
+          - '*'
+
+  # ─── Lambda Functions ───
+  CreateExpenseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/createExpense.handler
+      CodeUri: backend/dist/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExpenseTable
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ExpenseApi
+            Path: /expenses
+            Method: POST
+
+  ListExpensesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/listExpenses.handler
+      CodeUri: backend/dist/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExpenseTable
+        - S3ReadPolicy:
+            BucketName: !Ref ReceiptBucket
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ExpenseApi
+            Path: /expenses
+            Method: GET
+
+  GetExpenseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/getExpense.handler
+      CodeUri: backend/dist/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExpenseTable
+        - S3ReadPolicy:
+            BucketName: !Ref ReceiptBucket
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ExpenseApi
+            Path: /expenses/{id}
+            Method: GET
+
+  DeleteExpenseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/deleteExpense.handler
+      CodeUri: backend/dist/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExpenseTable
+        - S3CrudPolicy:
+            BucketName: !Ref ReceiptBucket
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ExpenseApi
+            Path: /expenses/{id}
+            Method: DELETE
+
+  GetCategoriesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/getCategories.handler
+      CodeUri: backend/dist/
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ExpenseTable
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ExpenseApi
+            Path: /categories
+            Method: GET
+
+  GetTagsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/getTags.handler
+      CodeUri: backend/dist/
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ExpenseTable
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ExpenseApi
+            Path: /tags
+            Method: GET
+
+  GetPresignedUploadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/getPresignedUploadUrl.handler
+      CodeUri: backend/dist/
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref ReceiptBucket
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ExpenseApi
+            Path: /presigned-upload
+            Method: GET
+
+  # ─── S3 Bucket for Website Hosting ───
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-website-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+  # ─── CloudFront Origin Access Control ───
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ─── CloudFront Distribution ───
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - DomainName: !GetAtt WebsiteBucket.RegionalDomainName
+            Id: S3Origin
+            OriginAccessControlId: !Ref CloudFrontOAC
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponsePagePath: /index.html
+            ResponseCode: 200
+          - ErrorCode: 403
+            ResponsePagePath: /index.html
+            ResponseCode: 200
+
+Outputs:
+  WebsiteUrl:
+    Description: CloudFront Distribution URL
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+  WebsiteBucketName:
+    Description: S3 Bucket Name for Website
+    Value: !Ref WebsiteBucket
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ExpenseApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref ExpenseTable
+  BucketName:
+    Description: S3 receipt bucket name
+    Value: !Ref ReceiptBucket

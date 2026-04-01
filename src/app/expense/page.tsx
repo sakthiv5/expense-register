@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { format, parseISO } from "date-fns";
+import { apiUrl } from "@/lib/api";
 
 type Expense = {
-  id: number;
+  id: string;
   amount: number;
   date: string;
   category: string;
@@ -13,8 +15,9 @@ type Expense = {
   created_at: string;
 };
 
-export default function ExpenseDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+function ExpenseDetailContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
   const [expense, setExpense] = useState<Expense | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -22,7 +25,7 @@ export default function ExpenseDetail({ params }: { params: Promise<{ id: string
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/expenses/${id}`)
+    fetch(apiUrl(`/expenses/${id}`))
       .then(res => res.json())
       .then(data => {
         if (data.expense) setExpense(data.expense);
@@ -35,7 +38,7 @@ export default function ExpenseDetail({ params }: { params: Promise<{ id: string
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
+      const res = await fetch(apiUrl(`/expenses/${id}`), { method: "DELETE" });
       if (res.ok) {
         window.location.href = "/expenses";
       } else {
@@ -63,7 +66,7 @@ export default function ExpenseDetail({ params }: { params: Promise<{ id: string
           {error}
         </div>
         <a href="/expenses" className="btn btn-secondary" style={{ width: '100%', marginTop: 'var(--spacing-md)' }}>
-          ← Back to Reports
+          ← Back to Expenses
         </a>
       </div>
     );
@@ -202,5 +205,17 @@ export default function ExpenseDetail({ params }: { params: Promise<{ id: string
         </div>
       )}
     </div>
+  );
+}
+
+export default function ExpenseDetail() {
+  return (
+    <Suspense fallback={
+      <div className="card" style={{ textAlign: 'center', padding: 'var(--spacing-xl)', color: 'var(--color-text-muted)' }}>
+        Loading...
+      </div>
+    }>
+      <ExpenseDetailContent />
+    </Suspense>
   );
 }

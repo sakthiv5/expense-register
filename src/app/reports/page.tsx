@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { format, startOfWeek, endOfWeek, subWeeks, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { apiUrl } from "@/lib/api";
 
 function getWeekRange(weeksAgo: number) {
   const now = new Date();
@@ -28,7 +29,7 @@ function getMonthRange(monthsAgo: number) {
 }
 
 type Expense = {
-  id: number;
+  id: string;
   amount: number;
 };
 
@@ -58,7 +59,7 @@ export default function Reports() {
 
   // Fetch available categories and tags
   useEffect(() => {
-    fetch('/api/categories')
+    fetch(apiUrl('/categories'))
       .then(res => res.json())
       .then(data => { if (data.categories) setAllCategories(data.categories); })
       .catch(console.error);
@@ -66,7 +67,7 @@ export default function Reports() {
 
   useEffect(() => {
     if (compCategory) {
-      fetch(`/api/tags?category=${encodeURIComponent(compCategory)}`)
+      fetch(apiUrl(`/tags?category=${encodeURIComponent(compCategory)}`))
         .then(res => res.json())
         .then(data => { if (data.tags) setAllTags(data.tags); })
         .catch(console.error);
@@ -84,7 +85,7 @@ export default function Reports() {
 
       for (const w of weeks) {
         try {
-          const res = await fetch(`/api/expenses?page=1&limit=1000&startDate=${w.start}&endDate=${w.end}${filterParams}`);
+          const res = await fetch(apiUrl(`/expenses?page=1&limit=1000&startDate=${w.start}&endDate=${w.end}${filterParams}`));
           const data = await res.json();
           const total = (data.expenses || []).reduce((sum: number, e: Expense) => sum + e.amount, 0);
           results.push({ label: w.label, total });
@@ -105,7 +106,7 @@ export default function Reports() {
 
       for (const m of months) {
         try {
-          const res = await fetch(`/api/expenses?page=1&limit=10000&startDate=${m.start}&endDate=${m.end}${filterParams}`);
+          const res = await fetch(apiUrl(`/expenses?page=1&limit=10000&startDate=${m.start}&endDate=${m.end}${filterParams}`));
           const data = await res.json();
           const total = (data.expenses || []).reduce((sum: number, e: Expense) => sum + e.amount, 0);
           results.push({ label: m.label, total });

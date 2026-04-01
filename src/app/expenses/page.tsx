@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { format, parseISO, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import { DonutChart } from "@/components/DonutChart";
+import { apiUrl } from "@/lib/api";
 
 type Expense = {
-  id: number;
+  id: string;
   amount: number;
   date: string;
   category: string;
@@ -54,7 +55,7 @@ export default function AllExpenses() {
     setIsLoading(true);
 
     try {
-      let url = `/api/expenses?page=${pageNum}&limit=20`;
+      let url = apiUrl(`/expenses?page=${pageNum}&limit=20`);
       if (startDate) url += `&startDate=${startDate}`;
       if (endDate) url += `&endDate=${endDate}`;
 
@@ -116,7 +117,7 @@ export default function AllExpenses() {
     setIsSearching(true);
     searchTimer.current = setTimeout(async () => {
       try {
-        let url = `/api/expenses?page=1&limit=200&search=${encodeURIComponent(searchQuery)}`;
+        let url = apiUrl(`/expenses?page=1&limit=200&search=${encodeURIComponent(searchQuery)}`);
         if (startDate) url += `&startDate=${startDate}`;
         if (endDate) url += `&endDate=${endDate}`;
 
@@ -270,7 +271,7 @@ export default function AllExpenses() {
             <div className="date-group-header">{dateLabel}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {dayExpenses.map(exp => (
-                <a key={exp.id} href={`/expenses/${exp.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <a key={exp.id} href={`/expense?id=${exp.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div className="report-row" style={{ cursor: 'pointer', transition: 'background-color 150ms' }}>
                     <div className="report-row-info">
                       <span className="report-row-category">{exp.category}</span>

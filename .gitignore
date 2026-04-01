@@ -44,3 +44,8 @@ next-env.d.ts
 /data
 /uploads
 build_output.txt
+
+# AWS SAM
+.aws-sam/
+backend/dist/
+backend/node_modules/

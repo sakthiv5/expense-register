@@ -1,0 +1,29 @@
+
+> expense-register@0.1.0 build
+> next build
+
+ΓÜá turbopack.root should be absolute, using: C:\Project\antigravity\expense-register
+Γû▓ Next.js 16.1.6 (Turbopack)
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 7.6s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/6) ...
+  Generating static pages using 7 workers (1/6) 
+  Generating static pages using 7 workers (2/6) 
+  Generating static pages using 7 workers (4/6) 
+Γ£ô Generating static pages using 7 workers (6/6) in 1582.3ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ Γùï /expenses
+Γö£ ╞Æ /expenses/[id]
+Γöö Γùï /reports
+
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+
